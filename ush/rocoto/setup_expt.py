@@ -28,9 +28,9 @@ def makedirs_if_missing(d):
 def create_EXPDIR():
 
     makedirs_if_missing(expdir)
-    configs = glob.glob(f'{configdir}/config.*')
+    configs = glob.glob('%s/config.*' % configdir)
     if len(configs) == 0:
-        msg = f'no config files found in {configdir}'
+        msg = 'no config files found in %s' % configdir
         raise IOError(msg)
     for config in configs:
         shutil.copy(config, expdir)
@@ -47,30 +47,37 @@ def create_COMROT():
     makedirs_if_missing(comrot)
 
     # Link ensemble member initial conditions
-    enkfdir = f'enkf{cdump}.{cymd}/{chh}'
+    enkfdir = 'enkf%s.%s/%s' % (cdump, cymd, chh)
     makedirs_if_missing(os.path.join(comrot, enkfdir))
     for i in range(1, nens + 1):
-        makedirs_if_missing(os.path.join(comrot, enkfdir, f'mem{i:03d}'))
-        os.symlink(os.path.join(icsdir, idatestr, f'C{resens}', f'mem{i:03d}', 'INPUT'),
-                   os.path.join(comrot, enkfdir, f'mem{i:03d}', 'INPUT'))
+        makedirs_if_missing(os.path.join(comrot, enkfdir, 'atmos/mem%03d' % i))
+#        os.symlink(os.path.join(icsdir, idatestr, 'C%d' % resens, 'mem%03d' % i, 'INPUT'),
+#                   os.path.join(comrot, enkfdir, 'mem%03d' % i, 'INPUT'))
+#        print os.path.join(icsdir, enkfdir, 'atmos/mem%03d' % i, 'INPUT'),'HIIII'
+        os.symlink(os.path.join(icsdir, enkfdir, 'atmos/mem%03d' % i, 'INPUT'),
+                   os.path.join(comrot, enkfdir, 'atmos/mem%03d' % i, 'INPUT'))
 
     # Link deterministic initial conditions
-    detdir = f'{cdump}.{cymd}/{chh}'
-    makedirs_if_missing(os.path.join(comrot, detdir))
-    os.symlink(os.path.join(icsdir, idatestr, f'C{resdet}', 'control', 'INPUT'),
-               os.path.join(comrot, detdir, 'INPUT'))
+    detdir = '%s.%s/%s' % (cdump, cymd, chh)
+    makedirs_if_missing(os.path.join(comrot, detdir, 'atmos'))
+#    os.symlink(os.path.join(icsdir, idatestr, 'C%d' % resdet, 'control', 'INPUT'),
+#               os.path.join(comrot, detdir, 'INPUT'))
+    os.symlink(os.path.join(icsdir, detdir, 'atmos/INPUT'),
+               os.path.join(comrot, detdir, 'atmos/INPUT'))
 
     # Link bias correction and radiance diagnostics files
     for fname in ['abias', 'abias_pc', 'abias_air', 'radstat']:
-        os.symlink(os.path.join(icsdir, idatestr, f'{cdump}.t{chh}z.{fname}'),
-                   os.path.join(comrot, detdir, f'{cdump}.t{chh}z.{fname}'))
+#        os.symlink(os.path.join(icsdir, idatestr, '%s.t%sz.%s' % (cdump, chh, fname)),
+#                   os.path.join(comrot, detdir, '%s.t%sz.%s' % (cdump, chh, fname)))
+        os.symlink(os.path.join(icsdir, detdir, 'atmos', '%s.t%sz.%s' % (cdump, chh, fname)),
+                   os.path.join(comrot, detdir, 'atmos', '%s.t%sz.%s' % (cdump, chh, fname)))
 
     return
 
 
 def edit_baseconfig():
 
-    base_config = f'{expdir}/config.base'
+    base_config = '%s/config.base' % expdir
 
     here = os.path.dirname(__file__)
     top = os.path.abspath(os.path.join(
@@ -79,7 +86,7 @@ def edit_baseconfig():
     if os.path.exists(base_config):
         os.unlink(base_config)
 
-    print(f'\nSDATE = {idate}\nEDATE = {edate}')
+    print '\nSDATE = %s\nEDATE = %s' % (idate, edate)
     with open(base_config + '.emc.dyn', 'rt') as fi:
         with open(base_config, 'wt') as fo:
             for line in fi:
@@ -88,9 +95,9 @@ def edit_baseconfig():
                     .replace('@SDATE@', idate.strftime('%Y%m%d%H')) \
                     .replace('@FDATE@', fdate.strftime('%Y%m%d%H')) \
                     .replace('@EDATE@', edate.strftime('%Y%m%d%H')) \
-                    .replace('@CASEENS@', f'C{resens}') \
-                    .replace('@CASECTL@', f'C{resdet}') \
-                    .replace('@NMEM_ENKF@', f'{nens}') \
+                    .replace('@CASEENS@', 'C%d' % resens) \
+                    .replace('@CASECTL@', 'C%d' % resdet) \
+                    .replace('@NMEM_ENKF@', '%d' % nens) \
                     .replace('@HOMEgfs@', top) \
                     .replace('@BASE_GIT@', base_git) \
                     .replace('@DMPDIR@', dmpdir) \
@@ -109,7 +116,7 @@ def edit_baseconfig():
                     .replace('@CHGRP_RSTPROD@', chgrp_rstprod) \
                     .replace('@CHGRP_CMD@', chgrp_cmd) \
                     .replace('@HPSSARCH@', hpssarch) \
-                    .replace('@gfs_cyc@', f'{gfs_cyc}')
+                    .replace('@gfs_cyc@', '%d' % gfs_cyc)
                 if expdir is not None:
                     line = line.replace('@EXPDIR@', os.path.dirname(expdir))
                 if comrot is not None:
@@ -118,11 +125,11 @@ def edit_baseconfig():
                     continue
                 fo.write(line)
 
-    print('')
-    print(f'EDITED:  {expdir}/config.base as per user input.')
-    print(f'DEFAULT: {expdir}/config.base.emc.dyn is for reference only.')
-    print('Please verify and delete the default file before proceeding.')
-    print('')
+    print ''
+    print 'EDITED:  %s/config.base as per user input.' % expdir
+    print 'DEFAULT: %s/config.base.emc.dyn is for reference only.' % expdir
+    print 'Please verify and delete the default file before proceeding.'
+    print ''
 
     return
 
@@ -224,7 +231,7 @@ link initial condition files from $ICSDIR to $COMROT'''
       base_svn = '/scratch1/NCEPDEV/global/glopara/svn'
       dmpdir = '/scratch1/NCEPDEV/global/glopara/dump'
       nwprod = '/scratch1/NCEPDEV/global/glopara/nwpara'
-      comroot = '/scratch1/NCEPDEV/rstprod/com'
+      comroot = '/scratch1/NCEPDEV/global/glopara/com'
       homedir = '/scratch1/NCEPDEV/global/$USER'
       stmp = '/scratch1/NCEPDEV/stmp2/$USER'
       ptmp = '/scratch1/NCEPDEV/stmp4/$USER'
@@ -239,23 +246,31 @@ link initial condition files from $ICSDIR to $COMROT'''
     elif machine == 'ORION':
       base_git = '/work/noaa/global/glopara/git'
       base_svn = '/work/noaa/global/glopara/svn'
-      dmpdir = '/work/noaa/rstprod/dump'
-      nwprod = '/work/noaa/global/glopara/nwpara'
+      #dmpdir = '/work/noaa/global/glopara/dump' #no directory anymore???
+      dmpdir = '/work/noaa/rstprod/dump' 
+      nwprod = '/work/noaa/global/glopara/nwpara' # no???
       comroot = '/work/noaa/global/glopara/com'
-      homedir = '/work/noaa/global/$USER'
-      stmp = '/work/noaa/stmp/$USER'
-      ptmp = '/work/noaa/stmp/$USER'
-      noscrub = '$HOMEDIR'
-      account = 'fv3-cpu'
+      homedir= '/work/noaa/dras-aida/fhe/ROTDIRS/'
+      stmp='/work/noaa/dras-aida/fhe/ROTDIRS/stmp/'
+      ptmp='/work/noaa/dras-aida/fhe/ROTDIRS/ptmp/'
+      noscrub='/work/noaa/dras-aida/fhe/noscrub/'
+      account = 'nesdis-rdo2'
+#      homedir = '/work/noaa/global/$USER'
+#      stmp = '/work/noaa/stmp/$USER'
+#      ptmp = '/work/noaa/stmp/$USER'
+#      noscrub = '$HOMEDIR'
+#      account = 'fv3-cpu'
+ 
+
       queue = 'batch'
       queue_service = 'service'
       partition_batch = 'orion'
-      chgrp_rstprod = 'YES'
-      chgrp_cmd = 'chgrp rstprod'
+      chgrp_rstprod = 'NO'
+      chgrp_cmd = 'ls'
       hpssarch = 'NO'
 
     if args.icsdir is not None and not os.path.exists(icsdir):
-        msg = f'Initial conditions do not exist in {icsdir}'
+        msg = 'Initial conditions do not exist in %s' % icsdir
         raise IOError(msg)
 
     # COMROT directory
@@ -264,10 +279,10 @@ link initial condition files from $ICSDIR to $COMROT'''
     else:
        create_comrot = True
        if os.path.exists(comrot):
-           print()
-           print(f'COMROT already exists in {comrot}')
-           print()
-           overwrite_comrot = input('Do you wish to over-write COMROT [y/N]: ')
+           print
+           print 'COMROT already exists in %s' % comrot
+           print
+           overwrite_comrot = raw_input('Do you wish to over-write COMROT [y/N]: ')
            create_comrot = True if overwrite_comrot in ['y', 'yes', 'Y', 'YES'] else False
            if create_comrot:
               shutil.rmtree(comrot)
@@ -278,10 +293,10 @@ link initial condition files from $ICSDIR to $COMROT'''
     # EXP directory
     create_expdir = True
     if os.path.exists(expdir):
-        print()
-        print(f'EXPDIR already exists in {expdir}')
-        print()
-        overwrite_expdir = input('Do you wish to over-write EXPDIR [y/N]: ')
+        print
+        print 'EXPDIR already exists in %s' % expdir
+        print
+        overwrite_expdir = raw_input('Do you wish to over-write EXPDIR [y/N]: ')
         create_expdir = True if overwrite_expdir in ['y', 'yes', 'Y', 'YES'] else False
         if create_expdir:
             shutil.rmtree(expdir)

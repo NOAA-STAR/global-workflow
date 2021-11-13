@@ -62,6 +62,7 @@ cd $COMIN
 
 [[ ! -d $ARCDIR ]] && mkdir -p $ARCDIR
 $NCP ${APREFIX}gsistat $ARCDIR/gsistat.${CDUMP}.${CDATE}
+$NCP ${APREFIX}radstat $ARCDIR/radstat.${CDUMP}.${CDATE}
 $NCP ${APREFIX}pgrb2.1p00.anl $ARCDIR/pgbanl.${CDUMP}.${CDATE}.grib2
 
 # Archive 1 degree forecast GRIB2 files for verification
